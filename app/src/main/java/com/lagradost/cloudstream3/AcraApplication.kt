@@ -2,12 +2,14 @@ package com.lagradost.cloudstream3
 
 import android.content.Context
 import com.lagradost.api.setContext
-import com.lagradost.cloudstream3.utils.DataStore
+import com.lagradost.cloudstream3.utils.DataStore.getKey
+import com.lagradost.cloudstream3.utils.DataStore.removeKeys
+import com.lagradost.cloudstream3.utils.DataStore.setKey
 import java.lang.ref.WeakReference
 
 /**
- * Backwards compatibility wrapper for old plugins.
- * DO NOT modify unless you know exactly what you're doing.
+ * Legacy wrapper for CloudStreamApp
+ * (CloudXtream / old plugin compatibility)
  */
 class AcraApplication {
 
@@ -15,26 +17,49 @@ class AcraApplication {
 
         private var contextRef: WeakReference<Context>? = null
 
-        internal fun setAppContext(context: Context) {
+        /**
+         * MUST be called from CloudStreamApp.attachBaseContext()
+         */
+        fun init(context: Context) {
             contextRef = WeakReference(context)
-            setContext(contextRef)
+            setContext(WeakReference(context))
         }
 
+        private fun ctx(): Context? = contextRef?.get()
+
         fun removeKeys(folder: String): Int? {
-            return contextRef?.get()?.let {
-                DataStore.removeKeys(it, folder)
-            }
+            return ctx()?.removeKeys(folder)
         }
 
         fun <T> setKey(path: String, value: T) {
-            contextRef?.get()?.let {
-                DataStore.setKey(it, path, value)
-            }
+            ctx()?.setKey(path, value)
         }
 
         fun <T> setKey(folder: String, path: String, value: T) {
-            contextRef?.get()?.let {
-                DataStore.setKey(it, folder, path, value)
+            ctx()?.setKey(folder, path, value)
+        }
+
+        inline fun <reified T : Any> getKey(path: String, defVal: T?): T? {
+            return ctx()?.getKey(path, defVal)
+        }
+
+        inline fun <reified T : Any> getKey(path: String): T? {
+            return ctx()?.getKey(path)
+        }
+
+        inline fun <reified T : Any> getKey(folder: String, path: String): T? {
+            return ctx()?.getKey(folder, path)
+        }
+
+        inline fun <reified T : Any> getKey(
+            folder: String,
+            path: String,
+            defVal: T?
+        ): T? {
+            return ctx()?.getKey(folder, path, defVal)
+        }
+    }
+}                DataStore.setKey(it, folder, path, value)
             }
         }
 
