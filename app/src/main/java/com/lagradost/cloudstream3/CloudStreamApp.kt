@@ -6,35 +6,155 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.os.Build
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import com.lagradost.api.setContext
-import com.lagradost.cloudstream3.mvvm.safe
-import com.lagradost.cloudstream3.mvvm.safeAsync
 import com.lagradost.cloudstream3.plugins.PluginManager
 import com.lagradost.cloudstream3.ui.settings.Globals.EMULATOR
 import com.lagradost.cloudstream3.ui.settings.Globals.TV
 import com.lagradost.cloudstream3.ui.settings.Globals.isLayout
 import com.lagradost.cloudstream3.utils.AppContextUtils.openBrowser
-import com.lagradost.cloudstream3.utils.Coroutines.runOnMainThread
-import com.lagradost.cloudstream3.utils.DataStore.getKey
-import com.lagradost.cloudstream3.utils.DataStore.getKeys
-import com.lagradost.cloudstream3.utils.DataStore.removeKey
-import com.lagradost.cloudstream3.utils.DataStore.removeKeys
-import com.lagradost.cloudstream3.utils.DataStore.setKey
+import com.lagradost.cloudstream3.utils.DataStore.*
 import com.lagradost.cloudstream3.utils.ImageLoader.buildImageLoader
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.PrintStream
 import java.lang.ref.WeakReference
-import java.util.Locale
-import kotlin.concurrent.thread
 import kotlin.system.exitProcess
+
+class ExceptionHandler(
+    private val errorFile: File,
+    private val onError: () -> Unit
+) : Thread.UncaughtExceptionHandler {
+
+    override fun uncaughtException(thread: Thread, error: Throwable) {
+        try {
+            val id = if (Build.VERSION.SDK_INT >= 26) thread.id else -1
+            PrintStream(errorFile).use {
+                it.println("Currently loading extension: ${PluginManager.currentlyLoading ?: "none"}")
+                it.println("Fatal exception on thread ${thread.name} ($id)")
+                error.printStackTrace(it)
+            }
+        } catch (_: FileNotFoundException) {
+        }
+
+        try {
+            onError()
+        } catch (_: Exception) {
+        }
+
+        exitProcess(1)
+    }
+}
+
+@Prerelease
+class CloudStreamApp : Application(), SingletonImageLoader.Factory {
+
+    override fun onCreate() {
+        super.onCreate()
+
+        ExceptionHandler(filesDir.resolve("last_error")) {
+            val intent = packageManager.getLaunchIntentForPackage(packageName)
+            startActivity(Intent.makeRestartActivityTask(intent!!.component))
+        }.also {
+            exceptionHandler = it
+            Thread.setDefaultUncaughtExceptionHandler(it)
+        }
+    }
+
+    // ✅ FIX UTAMA ADA DI SINI
+    override fun attachBaseContext(base: Context?) {
+        super.attachBaseContext(base)
+
+        base?.let {
+            context = it
+            AcraApplication.init(it) // <-- WAJIB, JANGAN DIHAPUS
+        }
+    }
+
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
+        return buildImageLoader(applicationContext)
+    }
+
+    companion object {
+
+        var exceptionHandler: ExceptionHandler? = null
+
+        tailrec fun Context.getActivity(): Activity? =
+            when (this) {
+                is Activity -> this
+                is ContextWrapper -> baseContext.getActivity()
+                else -> null
+            }
+
+        private var _context: WeakReference<Context>? = null
+
+        var context: Context?
+            get() = _context?.get()
+            private set(value) {
+                _context = WeakReference(value)
+                setContext(WeakReference(value))
+            }
+
+        fun <T : Any> getKeyClass(path: String, valueType: Class<T>): T? =
+            context?.getKey(path, valueType)
+
+        fun <T : Any> setKeyClass(path: String, value: T) =
+            context?.setKey(path, value)
+
+        fun removeKeys(folder: String): Int? =
+            context?.removeKeys(folder)
+
+        fun <T> setKey(path: String, value: T) =
+            context?.setKey(path, value)
+
+        fun <T> setKey(folder: String, path: String, value: T) =
+            context?.setKey(folder, path, value)
+
+        inline fun <reified T : Any> getKey(path: String, defVal: T?): T? =
+            context?.getKey(path, defVal)
+
+        inline fun <reified T : Any> getKey(path: String): T? =
+            context?.getKey(path)
+
+        inline fun <reified T : Any> getKey(folder: String, path: String): T? =
+            context?.getKey(folder, path)
+
+        inline fun <reified T : Any> getKey(
+            folder: String,
+            path: String,
+            defVal: T?
+        ): T? = context?.getKey(folder, path, defVal)
+
+        fun getKeys(folder: String): List<String>? =
+            context?.getKeys(folder)
+
+        fun removeKey(folder: String, path: String) =
+            context?.removeKey(folder, path)
+
+        fun removeKey(path: String) =
+            context?.removeKey(path)
+
+        fun openBrowser(
+            url: String,
+            fallbackWebView: Boolean = false,
+            fragment: Fragment? = null
+        ) {
+            context?.openBrowser(url, fallbackWebView, fragment)
+        }
+
+        fun openBrowser(url: String, activity: FragmentActivity?) {
+            openBrowser(
+                url,
+                isLayout(TV or EMULATOR),
+                activity?.supportFragmentManager?.fragments?.lastOrNull()
+            )
+        }
+    }
+}import kotlin.system.exitProcess
 
 class ExceptionHandler(
     val errorFile: File,
