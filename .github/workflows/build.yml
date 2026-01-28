@@ -1,10 +1,6 @@
-name: Build CloudStream APK
+name: Build Debug APK
 
 on:
-  push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
   workflow_dispatch:
 
 jobs:
@@ -21,20 +17,22 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Grant execute permission
+        run: chmod +x ./gradlew
 
-      # BUILD (ini yang tadi WORK)
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
-      # DEBUG – biar kelihatan APK memang ada
       - name: List APK outputs
         run: |
-          echo "=== APK FILES ==="
-          find . -name "*.apk"
+          echo "APK OUTPUT:"
+          find app/build/outputs -type f
 
-      # UPLOAD – dibuat GENERIK tapi AMAN
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CloudStream-Debug-APK
+          path: app/build/outputs/**/*.apk      # UPLOAD – dibuat GENERIK tapi AMAN
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
