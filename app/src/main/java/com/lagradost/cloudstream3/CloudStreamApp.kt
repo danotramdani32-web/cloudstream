@@ -36,12 +36,8 @@ class ExceptionHandler(
 
     override fun uncaughtException(thread: Thread, error: Throwable) {
         try {
-            val threadId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.BAKLAVA) {
-                thread.threadId()
-            } else {
-                @Suppress("DEPRECATION")
-                thread.id
-            }
+            @Suppress("DEPRECATION")
+            val threadId = thread.id
 
             PrintStream(errorFile).use { ps ->
                 ps.println("Currently loading extension: ${PluginManager.currentlyLoading ?: "none"}")
@@ -56,27 +52,25 @@ class ExceptionHandler(
         } catch (_: Exception) {
         }
 
-        // ❌ Android 6 tidak aman dengan exitProcess
+        // ❌ Android 6 TIDAK BOLEH exitProcess
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             exitProcess(1)
         }
     }
 }
 
-@Prerelease
 class CloudStreamApp : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
 
-        // 🔑 ANDROID 6 MODE (API 23)
+        // 🔑 ANDROID 6 SAFE MODE
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            // ❌ Jangan pasang ExceptionHandler
-            // ❌ Jangan restart otomatis
+            // Jangan pasang crash handler
             return
         }
 
-        // ===== ANDROID 7+ NORMAL PATH =====
+        // ANDROID 7+ NORMAL
         ExceptionHandler(filesDir.resolve("last_error")) {
             val intent = context?.packageManager
                 ?.getLaunchIntentForPackage(context?.packageName ?: return@ExceptionHandler)
@@ -102,7 +96,6 @@ class CloudStreamApp : Application(), SingletonImageLoader.Factory {
     companion object {
         var exceptionHandler: ExceptionHandler? = null
 
-        /** Use to get Activity from Context. */
         tailrec fun Context.getActivity(): Activity? =
             when (this) {
                 is Activity -> this
@@ -154,12 +147,10 @@ class CloudStreamApp : Application(), SingletonImageLoader.Factory {
         fun removeKey(path: String) =
             context?.removeKey(path)
 
-        /** If fallbackWebView is true and a fragment is supplied then it will open a WebView with the URL if the browser fails. */
         fun openBrowser(url: String, fallbackWebView: Boolean = false, fragment: Fragment? = null) {
             context?.openBrowser(url, fallbackWebView, fragment)
         }
 
-        /** Will fall back to WebView if in TV or emulator layout. */
         fun openBrowser(url: String, activity: FragmentActivity?) {
             openBrowser(
                 url,
