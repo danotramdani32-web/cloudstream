@@ -554,4 +554,232 @@ object DataStoreHelper {
         if (id == null) return null
         return getKey(
             "$currentAccount/$RESULT_RESUME_WATCHING",
-            id.toString
+            id.toString(),
+        )
+    }
+
+    private fun getLastWatchedOld(id: Int?): VideoDownloadHelper.ResumeWatching? {
+        if (id == null) return null
+        return getKey(
+            "$currentAccount/$RESULT_RESUME_WATCHING_OLD",
+            id.toString(),
+        )
+    }
+
+    fun setBookmarkedData(id: Int?, data: BookmarkedData) {
+        if (id == null) return
+        setKey("$currentAccount/$RESULT_WATCH_STATE_DATA", id.toString(), data)
+        AccountManager.localListApi.requireLibraryRefresh = true
+    }
+
+    fun getBookmarkedData(id: Int?): BookmarkedData? {
+        if (id == null) return null
+        return getKey("$currentAccount/$RESULT_WATCH_STATE_DATA", id.toString())
+    }
+
+    fun getAllBookmarkedData(): List<BookmarkedData> {
+        return getKeys("$currentAccount/$RESULT_WATCH_STATE_DATA")?.mapNotNull {
+            getKey(it)
+        } ?: emptyList()
+    }
+
+    fun getAllSubscriptions(): List<SubscribedData> {
+        return getKeys("$currentAccount/$RESULT_SUBSCRIBED_STATE_DATA")?.mapNotNull {
+            getKey(it)
+        } ?: emptyList()
+    }
+
+    fun removeSubscribedData(id: Int?) {
+        if (id == null) return
+        AccountManager.localListApi.requireLibraryRefresh = true
+        removeKey("$currentAccount/$RESULT_SUBSCRIBED_STATE_DATA", id.toString())
+    }
+
+    /**
+     * Set new seen episodes and update time
+     **/
+    fun updateSubscribedData(id: Int?, data: SubscribedData?, episodeResponse: EpisodeResponse?) {
+        if (id == null || data == null || episodeResponse == null) return
+        val newData = data.copy(
+            latestUpdatedTime = unixTimeMS,
+            lastSeenEpisodeCount = episodeResponse.getLatestEpisodes()
+        )
+        setKey("$currentAccount/$RESULT_SUBSCRIBED_STATE_DATA", id.toString(), newData)
+    }
+
+    fun setSubscribedData(id: Int?, data: SubscribedData) {
+        if (id == null) return
+        setKey("$currentAccount/$RESULT_SUBSCRIBED_STATE_DATA", id.toString(), data)
+        AccountManager.localListApi.requireLibraryRefresh = true
+    }
+
+    fun getSubscribedData(id: Int?): SubscribedData? {
+        if (id == null) return null
+        return getKey("$currentAccount/$RESULT_SUBSCRIBED_STATE_DATA", id.toString())
+    }
+
+    fun getAllFavorites(): List<FavoritesData> {
+        return getKeys("$currentAccount/$RESULT_FAVORITES_STATE_DATA")?.mapNotNull {
+            getKey(it)
+        } ?: emptyList()
+    }
+
+    fun removeFavoritesData(id: Int?) {
+        if (id == null) return
+        AccountManager.localListApi.requireLibraryRefresh = true
+        removeKey("$currentAccount/$RESULT_FAVORITES_STATE_DATA", id.toString())
+    }
+
+    fun setFavoritesData(id: Int?, data: FavoritesData) {
+        if (id == null) return
+        setKey("$currentAccount/$RESULT_FAVORITES_STATE_DATA", id.toString(), data)
+        AccountManager.localListApi.requireLibraryRefresh = true
+    }
+
+    fun getFavoritesData(id: Int?): FavoritesData? {
+        if (id == null) return null
+        return getKey("$currentAccount/$RESULT_FAVORITES_STATE_DATA", id.toString())
+    }
+
+    fun setViewPos(id: Int?, pos: Long, dur: Long) {
+        if (id == null) return
+        if (dur < 30_000) return // too short
+        setKey("$currentAccount/$VIDEO_POS_DUR", id.toString(), PosDur(pos, dur))
+    }
+
+    /** Sets the position, duration, and resume data of an episode/movie,
+     *
+     * if nextEpisode is not specified it will not be able to set the next episode as resumable if progress > NEXT_WATCH_EPISODE_PERCENTAGE
+     * */
+    fun setViewPosAndResume(id: Int?, position: Long, duration: Long, currentEpisode: Any?, nextEpisode: Any?) {
+        setViewPos(id, position, duration)
+        if (id != null) {
+            when (val meta = currentEpisode) {
+                is ResultEpisode -> {
+                    if (meta.videoWatchState == VideoWatchState.Watched) {
+                        setVideoWatchState(id, VideoWatchState.None)
+                    }
+                }
+            }
+        }
+
+        val percentage = position * 100L / duration
+        val nextEp = percentage >= NEXT_WATCH_EPISODE_PERCENTAGE
+        val resumeMeta = if (nextEp) nextEpisode else currentEpisode
+        if (resumeMeta == null && nextEp) {
+            // remove last watched as it is the last episode and you have watched too much
+            when (val newMeta = currentEpisode) {
+                is ResultEpisode -> {
+                    removeLastWatched(newMeta.parentId)
+                }
+
+                is ExtractorUri -> {
+                    removeLastWatched(newMeta.parentId)
+                }
+            }
+        } else {
+            // save resume
+            when (resumeMeta) {
+                is ResultEpisode -> {
+                    setLastWatched(
+                        resumeMeta.parentId,
+                        resumeMeta.id,
+                        resumeMeta.episode,
+                        resumeMeta.season,
+                        isFromDownload = false
+                    )
+                }
+
+                is ExtractorUri -> {
+                    setLastWatched(
+                        resumeMeta.parentId,
+                        resumeMeta.id,
+                        resumeMeta.episode,
+                        resumeMeta.season,
+                        isFromDownload = true
+                    )
+                }
+            }
+        }
+    }
+
+    fun getViewPos(id: Int?): PosDur? {
+        if (id == null) return null
+        return getKey("$currentAccount/$VIDEO_POS_DUR", id.toString(), null)
+    }
+
+    fun getVideoWatchState(id: Int?): VideoWatchState? {
+        if (id == null) return null
+        return getKey("$currentAccount/$VIDEO_WATCH_STATE", id.toString(), null)
+    }
+
+    fun setVideoWatchState(id: Int?, watchState: VideoWatchState) {
+        if (id == null) return
+
+        // None == No key
+        if (watchState == VideoWatchState.None) {
+            removeKey("$currentAccount/$VIDEO_WATCH_STATE", id.toString())
+        } else {
+            setKey("$currentAccount/$VIDEO_WATCH_STATE", id.toString(), watchState)
+        }
+    }
+
+    fun getDub(id: Int): DubStatus? {
+        return DubStatus.entries
+            .getOrNull(getKey("$currentAccount/$RESULT_DUB", id.toString(), -1) ?: -1)
+    }
+
+    fun setDub(id: Int, status: DubStatus) {
+        setKey("$currentAccount/$RESULT_DUB", id.toString(), status.ordinal)
+    }
+
+    fun setResultWatchState(id: Int?, status: Int) {
+        if (id == null) return
+        if (status == WatchType.NONE.internalId) {
+            deleteBookmarkedData(id)
+        } else {
+            setKey("$currentAccount/$RESULT_WATCH_STATE", id.toString(), status)
+        }
+    }
+
+    fun getResultWatchState(id: Int): WatchType {
+        return WatchType.fromInternalId(
+            getKey<Int>(
+                "$currentAccount/$RESULT_WATCH_STATE",
+                id.toString(),
+                null
+            )
+        )
+    }
+
+    fun getResultSeason(id: Int): Int? {
+        return getKey("$currentAccount/$RESULT_SEASON", id.toString(), null)
+    }
+
+    fun setResultSeason(id: Int, value: Int?) {
+        setKey("$currentAccount/$RESULT_SEASON", id.toString(), value)
+    }
+
+    fun getResultEpisode(id: Int): Int? {
+        return getKey("$currentAccount/$RESULT_EPISODE", id.toString(), null)
+    }
+
+    fun setResultEpisode(id: Int, value: Int?) {
+        setKey("$currentAccount/$RESULT_EPISODE", id.toString(), value)
+    }
+
+    fun addSync(id: Int, idPrefix: String, url: String) {
+        setKey("${idPrefix}_sync", id.toString(), url)
+    }
+
+    fun getSync(id: Int, idPrefixes: List<String>): List<String?> {
+        return idPrefixes.map { idPrefix ->
+            getKey("${idPrefix}_sync", id.toString())
+        }
+    }
+
+    var pinnedProviders: Array<String>
+        get() = getKey(USER_PINNED_PROVIDERS) ?: emptyArray<String>()
+        set(value) = setKey(USER_PINNED_PROVIDERS, value)
+
+}
