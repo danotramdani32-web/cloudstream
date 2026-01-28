@@ -1,7 +1,6 @@
 package com.lagradost.cloudstream3
 
 import android.content.Context
-import android.os.Build
 import com.lagradost.api.setContext
 import com.lagradost.cloudstream3.utils.DataStore.getKey
 import com.lagradost.cloudstream3.utils.DataStore.removeKeys
@@ -9,32 +8,43 @@ import com.lagradost.cloudstream3.utils.DataStore.setKey
 import java.lang.ref.WeakReference
 
 /**
- * Compatibility wrapper for old plugins.
- * MUST stay lightweight (Android 6 safe).
+ * Backwards compatibility wrapper.
+ * DO NOT add code outside companion object.
  */
 class AcraApplication {
 
     companion object {
 
-        @Volatile
         private var contextRef: WeakReference<Context>? = null
 
-        /**
-         * Safe context getter (can be null)
-         */
-        val context: Context?
+        var context: Context?
             get() = contextRef?.get()
+            internal set(value) {
+                contextRef = WeakReference(value)
+                setContext(contextRef)
+            }
 
-        /**
-         * MUST be called from CloudStreamApp.onCreate()
-         * Do NOT add heavy logic here
-         */
-        internal fun init(appContext: Context) {
-            contextRef = WeakReference(appContext)
+        fun removeKeys(folder: String): Int? {
+            return context?.removeKeys(folder)
+        }
 
-            // Guard Android 6 and below
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
-                setContext(WeakReference(appContext))
+        fun <T> setKey(path: String, value: T) {
+            context?.setKey(path, value)
+        }
+
+        fun <T> setKey(folder: String, path: String, value: T) {
+            context?.setKey(folder, path, value)
+        }
+
+        inline fun <reified T : Any> getKey(path: String, defVal: T?): T? {
+            return context?.getKey(path, defVal)
+        }
+
+        inline fun <reified T : Any> getKey(path: String): T? {
+            return context?.getKey(path)
+        }
+
+        inline fun <reified T : Any> getKey(folder: String, path: String):                setContext(WeakReference(appContext))
             }
         }
 
