@@ -1,40 +1,25 @@
 package com.lagradost.cloudstream3
 
 import android.content.Context
-import com.lagradost.api.setContext
-import com.lagradost.cloudstream3.utils.DataStore.getKey
-import com.lagradost.cloudstream3.utils.DataStore.removeKeys
-import com.lagradost.cloudstream3.utils.DataStore.setKey
 import java.lang.ref.WeakReference
 
 /**
- * Legacy wrapper for CloudStreamApp
- * (CloudXtream / old plugin compatibility)
+ * Legacy wrapper for backward compatibility with old plugins.
+ * DO NOT add logic here.
  */
 class AcraApplication {
-
     companion object {
+        private var _context: WeakReference<Context>? = null
 
-        private var contextRef: WeakReference<Context>? = null
-
-        /**
-         * MUST be called from CloudStreamApp.attachBaseContext()
-         */
-        fun init(context: Context) {
-            contextRef = WeakReference(context)
-            setContext(WeakReference(context))
-        }
-
-        private fun ctx(): Context? = contextRef?.get()
-
-        fun removeKeys(folder: String): Int? {
-            return ctx()?.removeKeys(folder)
-        }
-
-        fun <T> setKey(path: String, value: T) {
-            ctx()?.setKey(path, value)
-        }
-
+        var context: Context?
+            get() = _context?.get()
+            internal set(value) {
+                if (value != null) {
+                    _context = WeakReference(value)
+                }
+            }
+    }
+}
         fun <T> setKey(folder: String, path: String, value: T) {
             ctx()?.setKey(folder, path, value)
         }
