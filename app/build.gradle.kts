@@ -1,5 +1,4 @@
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,18 +8,19 @@ plugins {
 android {
 
     namespace = "com.lagradost.cloudstream3"
-    compileSdk = libs.versions.compileSdk.get().toInt()
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.lagradost.cloudstream3"
-        minSdk = 23            // Android 6 (STB)
+
+        minSdk = 23          // Android 6 (STB)
         targetSdk = 34
 
         versionCode = 67
         versionName = "4.6.2"
 
-        // ✅ FIX: manifestPlaceholders HARUS String
-        manifestPlaceholders["target_sdk_version"] = targetSdk.toString()
+        // ✅ FIX manifest tools:targetApi
+        manifestPlaceholders["target_sdk_version"] = "34"
 
         val localProperties = gradleLocalProperties(rootDir, providers)
 
@@ -34,7 +34,7 @@ android {
                 ?: localProperties["simkl.secret"]
                 ?: ""
 
-        // ✅ buildConfigField WAJIB pakai kutip ganda
+        // ⚠️ WAJIB ADA KUTIP
         buildConfigField(
             "String",
             "SIMKL_CLIENT_ID",
@@ -50,7 +50,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += setOf("armeabi-v7a") // STB Android 6
+            abiFilters += "armeabi-v7a"   // STB Android 6
         }
     }
 
@@ -81,12 +81,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // ✅ AGP BARU – TIDAK deprecated
-    kotlin {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
-            freeCompilerArgs.add("-Xannotation-default-target=param-property")
-        }
+    // ✅ CARA PALING STABIL (CloudStream pakai ini)
+    kotlinOptions {
+        jvmTarget = "17"
+        freeCompilerArgs += "-Xannotation-default-target=param-property"
     }
 }
 
@@ -108,7 +106,7 @@ dependencies {
     implementation(libs.bundles.media3)
     implementation(libs.bundles.nextlib)
 
-    // ✅ PENTING Android 6 (TLS 1.2)
+    // 🔴 WAJIB untuk Android 6 (TLS 1.2)
     implementation(libs.conscrypt.android)
     implementation(libs.nicehttp)
 
