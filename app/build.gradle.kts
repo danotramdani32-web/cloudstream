@@ -58,10 +58,14 @@ android {
         }
     }
 
+    @Suppress("UnstableApiUsage")
     testOptions {
-        unitTests.isReturnDefaultValues = true
+        unitTests {
+            isReturnDefaultValues = true
+        }
     }
 }
+
     buildTypes {
         getByName("debug") {
             isMinifyEnabled = false
