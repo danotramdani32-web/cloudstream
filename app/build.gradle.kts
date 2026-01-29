@@ -112,6 +112,8 @@ dependencies {
     implementation(libs.jsoup)
     implementation(libs.jackson.module.kotlin)
     implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("com.google.android.material:material:1.11.0")
 
     implementation(project(":library"))
 }
