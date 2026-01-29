@@ -36,10 +36,34 @@ fun getGitCommitHash(): String {
 }
 
 android {
+
     @Suppress("UnstableApiUsage")
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+
+    compileSdk = 34
+
+    defaultConfig {
+        applicationId = "com.lagradost.cloudstream3"
+        minSdk = 23
+        targetSdk = 34
+
+        // PENTING UNTUK STB ANDROID 6
+        ndk {
+            abiFilters.add("armeabi-v7a")
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            isMinifyEnabled = false
+        }
+        getByName("release") {
+            isMinifyEnabled = false
+        }
+    }
+}
 
     viewBinding {
         enable = true
