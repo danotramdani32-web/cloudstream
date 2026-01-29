@@ -19,8 +19,8 @@ android {
         versionCode = 67
         versionName = "4.6.2"
 
-        // 🔴 FIX placeholder Manifest
-        manifestPlaceholders["target_sdk_version"] = targetSdk
+        // ✅ FIX: manifestPlaceholders HARUS String
+        manifestPlaceholders["target_sdk_version"] = targetSdk.toString()
 
         val localProperties = gradleLocalProperties(rootDir, providers)
 
@@ -34,7 +34,7 @@ android {
                 ?: localProperties["simkl.secret"]
                 ?: ""
 
-        // 🔴 WAJIB pakai kutip ganda
+        // ✅ buildConfigField WAJIB pakai kutip ganda
         buildConfigField(
             "String",
             "SIMKL_CLIENT_ID",
@@ -50,7 +50,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += setOf("armeabi-v7a") // WAJIB untuk STB Android 6
+            abiFilters += setOf("armeabi-v7a") // STB Android 6
         }
     }
 
@@ -81,7 +81,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // ✅ CARA BENAR UNTUK AGP BARU (TIDAK deprecated)
+    // ✅ AGP BARU – TIDAK deprecated
     kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
@@ -108,7 +108,7 @@ dependencies {
     implementation(libs.bundles.media3)
     implementation(libs.bundles.nextlib)
 
-    // 🔴 PENTING Android 6 (TLS 1.2)
+    // ✅ PENTING Android 6 (TLS 1.2)
     implementation(libs.conscrypt.android)
     implementation(libs.nicehttp)
 
