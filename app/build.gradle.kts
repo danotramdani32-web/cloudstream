@@ -13,13 +13,13 @@ android {
     defaultConfig {
         applicationId = "com.lagradost.cloudstream3"
 
-        minSdk = 23          // Android 6 (STB)
+        minSdk = 23          // Android 6 STB
         targetSdk = 34
 
         versionCode = 67
         versionName = "4.6.2"
 
-        // ✅ FIX manifest tools:targetApi
+        // FIX untuk tools:targetApi di Manifest
         manifestPlaceholders["target_sdk_version"] = "34"
 
         val localProperties = gradleLocalProperties(rootDir, providers)
@@ -34,7 +34,6 @@ android {
                 ?: localProperties["simkl.secret"]
                 ?: ""
 
-        // ⚠️ WAJIB ADA KUTIP
         buildConfigField(
             "String",
             "SIMKL_CLIENT_ID",
@@ -50,7 +49,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += "armeabi-v7a"   // STB Android 6
+            abiFilters += "armeabi-v7a"
         }
     }
 
@@ -80,12 +79,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    // ✅ CARA PALING STABIL (CloudStream pakai ini)
-    kotlinOptions {
-        jvmTarget = "17"
-        freeCompilerArgs += "-Xannotation-default-target=param-property"
-    }
 }
 
 dependencies {
@@ -106,7 +99,7 @@ dependencies {
     implementation(libs.bundles.media3)
     implementation(libs.bundles.nextlib)
 
-    // 🔴 WAJIB untuk Android 6 (TLS 1.2)
+    // WAJIB untuk Android 6 TLS
     implementation(libs.conscrypt.android)
     implementation(libs.nicehttp)
 
