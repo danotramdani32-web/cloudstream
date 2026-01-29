@@ -171,6 +171,7 @@ dependencies {
     implementation(libs.fragment.ktx)
     implementation(libs.bundles.lifecycle)
     implementation(libs.bundles.navigation)
+    implementation("org.conscrypt:conscrypt-android:2.5.2")
 
     // Design & UI
     implementation(libs.preference.ktx)
