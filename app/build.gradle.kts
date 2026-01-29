@@ -8,18 +8,20 @@ plugins {
 android {
 
     namespace = "com.lagradost.cloudstream3"
-    compileSdk = 34
+
+    // 🔴 WAJIB 36 (AndroidX terbaru butuh ini)
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.lagradost.cloudstream3"
 
-        minSdk = 23          // Android 6 STB
+        minSdk = 23          // Android 6 STB (AMAN)
         targetSdk = 34
 
         versionCode = 67
         versionName = "4.6.2"
 
-        // FIX untuk tools:targetApi di Manifest
+        // 🔴 FIX tools:targetApi di AndroidManifest.xml
         manifestPlaceholders["target_sdk_version"] = "34"
 
         val localProperties = gradleLocalProperties(rootDir, providers)
@@ -34,6 +36,7 @@ android {
                 ?: localProperties["simkl.secret"]
                 ?: ""
 
+        // 🔴 buildConfigField WAJIB pakai string literal
         buildConfigField(
             "String",
             "SIMKL_CLIENT_ID",
@@ -49,7 +52,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += "armeabi-v7a"
+            abiFilters += "armeabi-v7a" // STB Android 6
         }
     }
 
@@ -79,6 +82,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    // 🔴 JANGAN pakai kotlin { compilerOptions } dulu
+    // 🔴 JANGAN pakai tasks.withType
 }
 
 dependencies {
@@ -99,7 +105,7 @@ dependencies {
     implementation(libs.bundles.media3)
     implementation(libs.bundles.nextlib)
 
-    // WAJIB untuk Android 6 TLS
+    // 🔴 WAJIB Android 6 TLS 1.2
     implementation(libs.conscrypt.android)
     implementation(libs.nicehttp)
 
