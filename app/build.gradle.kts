@@ -13,11 +13,14 @@ android {
 
     defaultConfig {
         applicationId = "com.lagradost.cloudstream3"
-        minSdk = 23        // Android 6
+        minSdk = 23            // Android 6 (STB)
         targetSdk = 34
 
         versionCode = 67
         versionName = "4.6.2"
+
+        // 🔴 FIX placeholder Manifest
+        manifestPlaceholders["target_sdk_version"] = targetSdk
 
         val localProperties = gradleLocalProperties(rootDir, providers)
 
@@ -31,7 +34,7 @@ android {
                 ?: localProperties["simkl.secret"]
                 ?: ""
 
-        // ⚠️ WAJIB ADA KUTIP
+        // 🔴 WAJIB pakai kutip ganda
         buildConfigField(
             "String",
             "SIMKL_CLIENT_ID",
@@ -47,7 +50,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += setOf("armeabi-v7a") // STB Android 6
+            abiFilters += setOf("armeabi-v7a") // WAJIB untuk STB Android 6
         }
     }
 
@@ -78,7 +81,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // ✅ INI CARA YANG BENAR (GANTI kotlinOptions + tasks.withType)
+    // ✅ CARA BENAR UNTUK AGP BARU (TIDAK deprecated)
     kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
@@ -105,7 +108,8 @@ dependencies {
     implementation(libs.bundles.media3)
     implementation(libs.bundles.nextlib)
 
-    implementation(libs.conscrypt.android) // TLS Android 6
+    // 🔴 PENTING Android 6 (TLS 1.2)
+    implementation(libs.conscrypt.android)
     implementation(libs.nicehttp)
 
     implementation(libs.jsoup)
