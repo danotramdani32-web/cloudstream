@@ -1,22 +1,19 @@
 import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
-import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
 }
 
-val javaTarget = JvmTarget.fromTarget(libs.versions.jvmTarget.get())
-
 android {
 
+    namespace = "com.lagradost.cloudstream3"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "com.lagradost.cloudstream3"
-        minSdk = 23            // AMAN untuk Android 6
+        minSdk = 23        // Android 6
         targetSdk = 34
 
         versionCode = 67
@@ -24,28 +21,33 @@ android {
 
         val localProperties = gradleLocalProperties(rootDir, providers)
 
+        val simklClientId =
+            System.getenv("SIMKL_CLIENT_ID")
+                ?: localProperties["simkl.id"]
+                ?: ""
+
+        val simklClientSecret =
+            System.getenv("SIMKL_CLIENT_SECRET")
+                ?: localProperties["simkl.secret"]
+                ?: ""
+
+        // ⚠️ WAJIB ADA KUTIP
         buildConfigField(
             "String",
             "SIMKL_CLIENT_ID",
-            (System.getenv("SIMKL_CLIENT_ID")
-                ?: localProperties["simkl.id"]
-                ?: ""
-            ).toString()
+            "\"$simklClientId\""
         )
 
         buildConfigField(
             "String",
             "SIMKL_CLIENT_SECRET",
-            (System.getenv("SIMKL_CLIENT_SECRET")
-                ?: localProperties["simkl.secret"]
-                ?: ""
-            ).toString()
+            "\"$simklClientSecret\""
         )
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters += listOf("armeabi-v7a") // WAJIB untuk STB Android 6
+            abiFilters += setOf("armeabi-v7a") // STB Android 6
         }
     }
 
@@ -76,11 +78,13 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    // ✅ INI CARA YANG BENAR (GANTI kotlinOptions + tasks.withType)
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+            freeCompilerArgs.add("-Xannotation-default-target=param-property")
+        }
     }
-
-    namespace = "com.lagradost.cloudstream3"
 }
 
 dependencies {
@@ -101,19 +105,11 @@ dependencies {
     implementation(libs.bundles.media3)
     implementation(libs.bundles.nextlib)
 
-    implementation(libs.conscrypt.android) // PENTING Android 6 TLS
+    implementation(libs.conscrypt.android) // TLS Android 6
     implementation(libs.nicehttp)
 
     implementation(libs.jsoup)
     implementation(libs.jackson.module.kotlin)
 
     implementation(project(":library"))
-}
-
-tasks.withType<KotlinJvmCompile> {
-    compilerOptions {
-        jvmTarget.set(javaTarget)
-        jvmDefault.set(JvmDefaultMode.ENABLE)
-        freeCompilerArgs.add("-Xannotation-default-target=param-property")
-    }
 }
